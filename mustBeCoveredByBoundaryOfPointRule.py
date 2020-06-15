@@ -8,6 +8,7 @@ from gvsig import uselib
 uselib.use_plugin("org.gvsig.topology.app.mainplugin")
 
 from org.gvsig.expressionevaluator import ExpressionEvaluatorLocator
+# from org.gvsig.expressionevaluator import GeometryExpressionEvaluatorLocator
 from org.gvsig.topology.lib.api import TopologyLocator
 from org.gvsig.topology.lib.spi import AbstractTopologyRule
 
@@ -34,9 +35,9 @@ class MustBeCoveredByBoundaryOfPointRule(AbstractTopologyRule):
                     break
         else:
             if self.expression == None:
-                manager = ExpressionEvaluatorLocator.getManager()
-                self.expression = manager.createExpression()
-                self.expressionBuilder = manager.createExpressionBuilder()
+                self.expression = ExpressionEvaluatorLocator.getManager().createExpression()
+                self.expressionBuilder = ExpressionEvaluatorLocator.getManager().createExpressionBuilder()
+                # self.expressionBuilder = GeometryExpressionEvaluatorLocator.getManager().createExpressionBuilder()
                 store2 = theDataSet2.getFeatureStore()
                 self.geomName = store2.getDefaultFeatureType().getDefaultGeometryAttributeName()
             self.expression.setPhrase(
@@ -112,8 +113,9 @@ class MustBeCoveredByBoundaryOfPointRule(AbstractTopologyRule):
         except:
             ex = sys.exc_info()[1]
             gvsig.logger("Can't execute rule. Class Name: " + ex.__class__.__name__ + ". Exception: " + str(ex), gvsig.LOGGER_ERROR)
+    
+    def setDataSet1(self, dataSet1):
+        self.dataSet1 = dataSet1
 
 def main(*args):
     pass
-
-# polygonstopolylines
