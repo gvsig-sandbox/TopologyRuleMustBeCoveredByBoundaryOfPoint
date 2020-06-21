@@ -13,6 +13,7 @@ from org.gvsig.topology.lib.api import TopologyLocator
 from org.gvsig.topology.lib.spi import AbstractTopologyRule
 
 from deletePointAction import DeletePointAction
+from markPointAction import MarkPointAction
 
 class MustBeCoveredByBoundaryOfPointRule(AbstractTopologyRule):
     
@@ -23,15 +24,16 @@ class MustBeCoveredByBoundaryOfPointRule(AbstractTopologyRule):
     def __init__(self, plan, factory, tolerance, dataSet1, dataSet2):
         AbstractTopologyRule.__init__(self, plan, factory, tolerance, dataSet1, dataSet2)
         self.addAction(DeletePointAction())
+        self.addAction(MarkPointAction())
     
     def intersects(self, buffer1, theDataSet2):
-        result = False
+        result = [False, None]
         if theDataSet2.getSpatialIndex() != None:
             for featureReference in theDataSet2.query(buffer1):
                 feature2 = featureReference.getFeature()
-                line2 = feature2.getDefaultGeometry().toLines()
+                line2 = feature2.getDefaultGeometry().toLines() # Boundary
                 if line2.intersects(buffer1):
-                    result = True
+                    result = [True, None]
                     break
         else:
             if self.expression == None:
@@ -45,13 +47,13 @@ class MustBeCoveredByBoundaryOfPointRule(AbstractTopologyRule):
                     self.expressionBuilder.column(self.geomName),
                     self.expressionBuilder.constant(False),
                     self.expressionBuilder.ST_Intersects(
-                        self.expressionBuilder.geometry(buffer1),
-                        self.expressionBuilder.column(self.geomName)
+                        self.expressionBuilder.function("ST_ExteriorRing", self.expressionBuilder.column(self.geomName)), # Boundary
+                        self.expressionBuilder.geometry(buffer1, buffer1.getProjection())
                     )
                 ).toString()
             )
-            if theDataSet2.findFirst(self.expression) == None:
-                result = True
+            if theDataSet2.findFirst(self.expression) != None:
+                result = [True, None]
         return result
     
     def check(self, taskStatus, report, feature1):
@@ -62,8 +64,12 @@ class MustBeCoveredByBoundaryOfPointRule(AbstractTopologyRule):
             geometryType1 = point1.getGeometryType()
             if geometryType1.getSubType() == geom.D2 or geometryType1.getSubType() == geom.D2M:
                 if geometryType1.getType() == geom.POINT or geometryType1.isTypeOf(geom.POINT):
-                    buffer1 = point1.buffer(tolerance1)
-                    if not self.intersects(buffer1, theDataSet2):
+                    if tolerance1 > 0:
+                        buffer1 = point1.buffer(tolerance1)
+                    else:
+                        buffer1 = point1
+                    result = self.intersects(buffer1, theDataSet2)
+                    if not result[0]:
                         report.addLine(self,
                             self.getDataSet1(),
                             self.getDataSet2(),
@@ -81,8 +87,12 @@ class MustBeCoveredByBoundaryOfPointRule(AbstractTopologyRule):
                     if geometryType1.getType() == geom.MULTIPOINT or geometryType1.isTypeOf(geom.MULTIPOINT):
                         n1 = point1.getPrimitivesNumber()
                         for i in range(0, n1 + 1):
-                            buffer1 = point1.getPointAt(i).buffer(tolerance1)
-                            if not self.intersects(buffer1, theDataSet2):
+                            if tolerance1 > 0:
+                                buffer1 = point1.getPointAt(i).buffer(tolerance1)
+                            else:
+                                buffer1 = point1.getPointAt(i)
+                            result = self.intersects(buffer1, theDataSet2)
+                            if not result[0]:
                                 report.addLine(self,
                                     self.getDataSet1(),
                                     self.getDataSet2(),
@@ -90,7 +100,7 @@ class MustBeCoveredByBoundaryOfPointRule(AbstractTopologyRule):
                                     point1.getPointAt(i),
                                     feature1.getReference(), 
                                     None,
-                                    i,
+                                    -1,
                                     -1,
                                     False,
                                     "The multipoint is not on the boundary of the polygon.",
@@ -113,9 +123,6 @@ class MustBeCoveredByBoundaryOfPointRule(AbstractTopologyRule):
         except:
             ex = sys.exc_info()[1]
             gvsig.logger("Can't execute rule. Class Name: " + ex.__class__.__name__ + ". Exception: " + str(ex), gvsig.LOGGER_ERROR)
-    
-    def setDataSet1(self, dataSet1):
-        self.dataSet1 = dataSet1
 
 def main(*args):
     pass
