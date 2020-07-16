@@ -27,13 +27,13 @@ class MustBeCoveredByBoundaryOfPointRule(AbstractTopologyRule):
         self.addAction(MarkPointAction())
     
     def intersects(self, buffer1, theDataSet2):
-        result = [False, None]
+        result = [False, []]
         if theDataSet2.getSpatialIndex() != None:
             for featureReference in theDataSet2.query(buffer1):
                 feature2 = featureReference.getFeature()
                 line2 = feature2.getDefaultGeometry().toLines() # Boundary
                 if line2.intersects(buffer1):
-                    result = [True, None]
+                    result[0] = True
                     break
         else:
             if self.expression == None:
@@ -47,13 +47,15 @@ class MustBeCoveredByBoundaryOfPointRule(AbstractTopologyRule):
                     self.expressionBuilder.column(self.geomName),
                     self.expressionBuilder.constant(False),
                     self.expressionBuilder.ST_Intersects(
-                        self.expressionBuilder.function("ST_ExteriorRing", self.expressionBuilder.column(self.geomName)), # Boundary
-                        self.expressionBuilder.geometry(buffer1, buffer1.getProjection())
+                        self.expressionBuilder.ST_ExteriorRing(
+                            self.expressionBuilder.geometry(buffer1)
+                        ),
+                        self.expressionBuilder.column(self.geomName)
                     )
                 ).toString()
             )
             if theDataSet2.findFirst(self.expression) != None:
-                result = [True, None]
+                result[0] = True
         return result
     
     def check(self, taskStatus, report, feature1):
