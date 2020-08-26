@@ -1,0 +1,32 @@
+{
+    "id": "MustBeCoveredByBoundaryOfPoint",
+    "name": "Must Be Covered By Boundary Of",
+    "description": [ 
+        "<img src=\"@@@_d/mustBeCoveredByBoundaryOf.png\">\n",
+        "For this rule there are 2 layers, ",
+        "one is taken as the input layer and the other is the coverage layer. ",
+        "must be covered by the boundary of any of the polygons from the coverage layer, ",
+        "if this is not the case the error report is created. ",
+        "The points of the input layer are taken with a certain tolerance, ",
+        "so a buffer is calculated where the radius of this buffer is the tolerance."
+    ],
+    "actions" : {
+        "DeletePoint": {
+            "name" : "Delete Point",
+            "description": [ 
+                "This action deletes the point errors, these are the not covered points. ",
+                "Delete the entities that do not comply with the rule, always taking account the established tolerance.",
+                "The points to delete can be selected individually."
+            ]
+        },
+        "MarkPoint": {
+            "name" : "Mark Point",
+            "description": [ 
+                "This action makes a new layer with red dot marks",
+                "which corresponds to the points selected in the error report.",
+                "This action marks the errors in a clear visual way,",
+                "then the user must choose what to do with them."
+            ]
+        }
+    }
+}
